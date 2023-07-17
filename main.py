@@ -35,6 +35,7 @@ def draw_styled_landmarks(image, results):
                               )
 
 
+# Draw landmarks stylized
 def draw_styled_landmarks_all(image, results):
     # Draw face connections
     mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACE_CONNECTIONS,
@@ -66,7 +67,8 @@ def calculate_angle(a, b, c, d):
     d = np.array(d)
     radians = np.arctan2(d[1] - c[1], d[0] - c[0]) - np.arctan2(b[1] - a[1], b[0] - a[0])
     angle = np.abs(radians * 180.0 / np.pi)
-    if a[1] > b[1] and angle > 180.0:
+    if a[1] > b[
+        1] and angle > 180.0:  # if left wrist above right and angle over 180.0(likely  around 300-360), convert to under 0 to 180
         angle = 360.0 - angle
     if a[1] < b[1] and angle < 180:
         angle = 360.0 - angle
@@ -126,34 +128,35 @@ def throttle_controller(throttle_input, accelarate):
 
 
 # CONVERTS INPUTS TO ACTUAL KEY CLICKS
-def turn_controller(Turn, prev_Turn):
-    if Turn == turn_controls['left']:
-        if prev_Turn == turn_controls['null']:
+def turn_controller(turn, prev_turn):
+    if turn == turn_controls['left']:
+        if prev_turn == turn_controls['null']:
             pg.keyDown('left')
             return
-        if prev_Turn == turn_controls['right']:
+        if prev_turn == turn_controls['right']:
             pg.keyUp('right')
             pg.keyDown('left')
             return
-    if Turn == turn_controls['right']:
-        if prev_Turn == turn_controls['null']:
+    if turn == turn_controls['right']:
+        if prev_turn == turn_controls['null']:
             pg.keyDown('right')
             return
-        if prev_Turn == turn_controls['left']:
+        if prev_turn == turn_controls['left']:
             pg.keyUp('left')
             pg.keyDown('right')
             return
-    if Turn == turn_controls['null']:
-        if prev_Turn == turn_controls['null']:
+    if turn == turn_controls['null']:
+        if prev_turn == turn_controls['null']:
             return
-        if prev_Turn == turn_controls['left']:
+        if prev_turn == turn_controls['left']:
             pg.keyUp('left')
             return
-        if prev_Turn == turn_controls['right']:
+        if prev_turn == turn_controls['right']:
             pg.keyUp('right')
             return
 
 
+# a testing opencv panel to view any necessary markers in frames
 def test_view():
     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
         while True:
@@ -187,7 +190,7 @@ def test_view():
 
 
 # test_view()
-
+# put action  prediction probabilities on the frame
 def prob_viz(res, actions, input_frame, colors):
     output_frame = input_frame.copy()
     for num, prob in enumerate(res):
@@ -199,13 +202,18 @@ def prob_viz(res, actions, input_frame, colors):
     return output_frame
 
 
+# MAIN APPLICATION METHOD
 def app():
+    # flag, if true allows for camera detections to trigger key clicks, else not
+    keyboard_flag = True
+    # array to append frames(30 for current model) to ship of to the model to make predictions and minimum predicted
+    # prob of any action
     sequence = []
     threshold = 0.65
     # controls
     angle = 0.0
     accelerate = False
-    Turn = turn_controls['null']
+    turn = turn_controls['null']
     turn_controls_inv = {0: 'null', 1: 'left', 2: 'right'}  # key and value swapped
 
     # THE MAIN LOOP WHICH RUNS TO GET ACTIONS AND GIVE FINAL CONTROL PREDICTIONS
@@ -231,7 +239,7 @@ def app():
                 right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
                                   landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
                 # Throttle controls
-                if res[np.argmax(res)] > threshold and actions[np.argmax(res)] != 'null':
+                if res[np.argmax(res)] > threshold and actions[np.argmax(res)] != 'null' and keyboard_flag:
                     throttle_controller(actions[np.argmax(res)], accelerate)
                 else:
                     pass
@@ -257,9 +265,10 @@ def app():
                 image = prob_viz(res, actions, image, colors)
 
             # Turning
-            prev_Turn = Turn
-            Turn = angle_to_turn(angle)
-            turn_controller(Turn, prev_Turn)
+            prev_turn = turn
+            turn = angle_to_turn(angle)
+            if keyboard_flag:
+                turn_controller(turn, prev_turn)
 
             # Visualize angle
             cv2.putText(image, str(angle),
@@ -267,13 +276,16 @@ def app():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                         )
             cv2.putText(image,
-                        'Throttle: {} | Turn: {}'.format(accelerate, turn_controls_inv[Turn]),
+                        'Throttle: {} | turn: {}'.format(accelerate, turn_controls_inv[turn]),
                         (20, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.632, (0, 255, 0), 4, cv2.LINE_AA
                         )
 
             # Show to screen
             cv2.imshow('OpenCV Feed', image)
+
+            if cv2.waitKey(10) & 0xFF == ord('f'):
+                keyboard_flag = not keyboard_flag
 
             # Break gracefully
             if cv2.waitKey(10) & 0xFF == ord('q'):
@@ -282,4 +294,4 @@ def app():
         cv2.destroyAllWindows()
 
 
-app()
+app()  # running the main application method

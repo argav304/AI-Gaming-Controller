@@ -26,6 +26,7 @@ model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['categ
 model.load_weights('./Models/actions.h5')
 
 
+
 # DRAWING THE POSTIION MARKERS AND THE CONNECTIONS
 def draw_styled_landmarks(image, results):
     # Draw pose connections
@@ -269,14 +270,15 @@ def app():
             turn = angle_to_turn(angle)
             if keyboard_flag:
                 turn_controller(turn, prev_turn)
-
-            # Visualize angle
-            cv2.putText(image, str(angle),
-                        tuple(np.multiply(left_wrist, [640, 480]).astype(int)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                        )
+            try:
+                cv2.putText(image, str(angle),
+                            tuple(np.multiply(left_wrist, [640, 480]).astype(int)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                            )
+            except UnboundLocalError:
+                pass
             cv2.putText(image,
-                        'Throttle: {} | turn: {}'.format(accelerate, turn_controls_inv[turn]),
+                        'Throttle: {} | turn: {} | keyclick: {}'.format(accelerate, turn_controls_inv[turn], keyboard_flag),
                         (20, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.632, (0, 255, 0), 4, cv2.LINE_AA
                         )
@@ -290,6 +292,7 @@ def app():
             # Break gracefully
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
+
         cap.release()
         cv2.destroyAllWindows()
 

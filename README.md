@@ -27,7 +27,7 @@ This project was built on Python 3.8.10 in Windows 10. It's dependencies are:
    * MediaPipe 0.10.1
    * OpenCV-python 4.8.0.74
      
-Tensorflow is used to compile the model. MediaPipe is used to get pose and hand landmarks form video feed. OpenCV is used to view the actual feed. PyAutoGUI is used to convert action predictions to key clicks
+Tensorflow is used to compile the model. MediaPipe is used to get pose and hand landmarks from video feed. OpenCV is used to view the actual feed. PyAutoGUI is used to convert action predictions to key clicks
 
 Incase you want to work with the notebook files to work on the model, install **Jupyter Notebook** and **SciKit-Learn**
 You can see online resources on how to open the project folder in Jupyter Notebook.

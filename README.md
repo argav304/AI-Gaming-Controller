@@ -44,7 +44,7 @@ After this open up the project with any IDE and run the **main.py** file, it sho
 Ofcourse, for these to register you have to select the open-cv windows( mouse click on it) before clicking the **q**/**f** keys.
 ---
 
-DISCLAIMER : This thing works on webcam feed, So you would need one. Also, I do not collect acy private data.
+DISCLAIMER : This thing works on webcam feed, So you would need one. Also, I do not collect any private data.
 
 ---
 Check out releases section for latest release.

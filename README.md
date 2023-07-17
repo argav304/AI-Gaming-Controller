@@ -42,3 +42,6 @@ After this open up the project with any IDE and run the **main.py** file, it sho
 * To close the window, **click 'q'**
 * To disable keyclicks caused by actions , **click 'f'**
 Ofcourse, for these to register you have to select the open-cv windows( mouse click on it) before clicking the **q**/**f** keys.
+
+---
+Check out releases section for latest release.

@@ -1,4 +1,4 @@
-# Game Controller
+# AI Game Controller
 ---
 ## Description
 

@@ -36,8 +36,9 @@ You can see online resources on how to open the project folder in Jupyter Notebo
 
 Clone the project into a folder, and create a new environment using [VENV](https://docs.python.org/3/library/venv.html). Install the above dependencies using pip
 
-`pip install tensorflow opencv-python mediapipe pyautogui`
-
+```
+pip install tensorflow opencv-python mediapipe pyautogui
+```
 After this open up the project with any IDE and run the **main.py** file, it should open an open-cv window. 
 * To close the window, **click 'q'**
 * To disable keyclicks caused by actions , **click 'f'**

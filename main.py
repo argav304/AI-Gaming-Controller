@@ -297,4 +297,4 @@ def app():
         cv2.destroyAllWindows()
 
 
-app()  # running the main application method
+

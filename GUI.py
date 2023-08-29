@@ -1,4 +1,6 @@
 import customtkinter
+from PIL import Image
+import cv2
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -8,7 +10,8 @@ class App(customtkinter.CTk):
     start_button_flag = False
     def __init__(self):
         super().__init__()
-
+        #setting up the camera
+        self.vid = cv2.VideoCapture(0)
         # configure window
         self.title("AI Game Controller")
         self.geometry(f"{1100}x{580}")
@@ -21,6 +24,14 @@ class App(customtkinter.CTk):
         # video feed frame( widget )
         self.videofeed_frame = customtkinter.CTkFrame(self)
         self.videofeed_frame.grid(row=0, column=0, rowspan=2, sticky="nsew")
+        self.label=customtkinter.CTkLabel(self.videofeed_frame)
+        self.label.grid(row=0, column=0,rowspan=2,sticky="nsew")
+        ret,frame = self.vid.read()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = customtkinter.CTkImage(light_image=Image.fromarray(frame),dark_image=Image.fromarray(frame),size=(580,580))
+        self.label.img_update=image
+        self.label.configure(image=image)
+
 
         # buttons and switch
 

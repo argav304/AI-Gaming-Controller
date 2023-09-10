@@ -1,4 +1,5 @@
-from main import toggle_key_click_flag,toggle_start_core_flag
+from ModelRunner import toggle_key_click_flag,toggle_start_core_flag
+from tkinter import CENTER
 import customtkinter
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -29,7 +30,7 @@ class GUI(customtkinter.CTk):
         self.videofeed_frame = customtkinter.CTkFrame(self)
         self.videofeed_frame.grid(row=0, column=0, rowspan=2, sticky="nsew")
         self.image_label = customtkinter.CTkLabel(self.videofeed_frame, text="")
-        self.image_label.grid(row=0, column=0, rowspan=2, sticky="nsew")
+        self.image_label.place(relx=0.5,rely=0.5,anchor=CENTER)
 
         # buttons and switch
 
@@ -47,12 +48,12 @@ class GUI(customtkinter.CTk):
 
     def start_button_event(self):
         self.start_button_flag = not self.start_button_flag
-        if not self.start_button_flag:
+        if self.start_button_flag:
             toggle_start_core_flag(True)
-            self.start_button.configure(text="START", fg_color="#00c9a6", hover_color="#00836c")
+            self.start_button.configure(text="END", fg_color="#ff0052", hover_color="#660021")
         else:
             toggle_start_core_flag(False)
-            self.start_button.configure(text="END", fg_color="#ff0052", hover_color="#660021")
+            self.start_button.configure(text="START", fg_color="#00c9a6", hover_color="#00836c")
 
     def keyoff_event(self):
         if self.keyoff_flag.get() == "on":
@@ -61,7 +62,7 @@ class GUI(customtkinter.CTk):
             toggle_key_click_flag(False)
 
     def close_event(self):
-        self.cap.release()
         self.run_event.clear()
+        self.cap.release()
         self.destroy()
         print('program closed')

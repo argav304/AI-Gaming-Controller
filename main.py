@@ -1,14 +1,19 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
+from threading import Thread, Event
 import pyautogui as pg
 import mediapipe as mp
+from queue import Queue
+from PIL import Image
+from GUI import GUI
+import customtkinter
 import numpy as np
 import cv2
 
 mp_holistic = mp.solutions.holistic  # Holistic model
 mp_drawing = mp.solutions.drawing_utils  # Drawing utilities
 mp_pose = mp.solutions.pose  # Inbuilt poses
-pose_connections = frozenset({(15, 16), (11, 12)})  # shoulder and wrist connection
+pose_connections = [(15, 16), (11, 12)]  # shoulder and wrist connection
 actions = np.array(['null', 'apply-throttle', 'release-throttle'])  # the throttle control actions
 colors = [(245, 117, 16), (117, 245, 16),
           (16, 117, 245)]  # colors to show the predicted values of the throttle controls
@@ -26,8 +31,7 @@ model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['categ
 model.load_weights('./Models/actions.h5')
 
 
-
-# DRAWING THE POSTIION MARKERS AND THE CONNECTIONS
+# DRAWING THE POSITION MARKERS AND THE CONNECTIONS
 def draw_styled_landmarks(image, results):
     # Draw pose connections
     mp_drawing.draw_landmarks(image, results.pose_landmarks, pose_connections,
@@ -38,11 +42,6 @@ def draw_styled_landmarks(image, results):
 
 # Draw landmarks stylized
 def draw_styled_landmarks_all(image, results):
-    # Draw face connections
-    mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACE_CONNECTIONS,
-                              mp_drawing.DrawingSpec(color=(80, 110, 10), thickness=1, circle_radius=1),
-                              mp_drawing.DrawingSpec(color=(80, 256, 121), thickness=1, circle_radius=1)
-                              )
     # Draw pose connections
     mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
                               mp_drawing.DrawingSpec(color=(80, 22, 10), thickness=2, circle_radius=4),
@@ -69,7 +68,8 @@ def calculate_angle(a, b, c, d):
     radians = np.arctan2(d[1] - c[1], d[0] - c[0]) - np.arctan2(b[1] - a[1], b[0] - a[0])
     angle = np.abs(radians * 180.0 / np.pi)
     if a[1] > b[
-        1] and angle > 180.0:  # if left wrist above right and angle over 180.0(likely  around 300-360), convert to under 0 to 180
+        1] and angle > 180.0:  # if left wrist above right and angle over 180.0(likely  around 300-360), convert to
+        # under 0 to 180
         angle = 360.0 - angle
     if a[1] < b[1] and angle < 180:
         angle = 360.0 - angle
@@ -82,7 +82,6 @@ def mediapipe_detection(image, model):
     image.flags.writeable = False  # Image is no longer writeable
     results = model.process(image)  # Make prediction
     image.flags.writeable = True  # Image is now writeable
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # COLOR COVERSION RGB 2 BGR
     return image, results
 
 
@@ -157,40 +156,6 @@ def turn_controller(turn, prev_turn):
             return
 
 
-# a testing opencv panel to view any necessary markers in frames
-def test_view():
-    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-        while True:
-
-            # Read feed
-            frame = cv2.imread('./test.jpg')
-            # Make detections
-            image, results = mediapipe_detection(frame, holistic)
-
-            # Draw landmarks
-            draw_styled_landmarks(image, results)
-
-            # Show to screen
-            cv2.imshow('OpenCV Feed', image)
-
-            landmarks = results.pose_landmarks.landmark
-            left_wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,
-                          landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
-            right_wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
-                           landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
-            left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
-                             landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-            right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
-                              landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-
-            # Break gracefully
-            if cv2.waitKey(10) & 0xFF == ord('q'):
-                break
-
-        cv2.destroyAllWindows()
-
-
-# test_view()
 # put action  prediction probabilities on the frame
 def prob_viz(res, actions, input_frame, colors):
     output_frame = input_frame.copy()
@@ -203,10 +168,41 @@ def prob_viz(res, actions, input_frame, colors):
     return output_frame
 
 
+def toggle_start_core_flag(value):
+    global Start_Core_Flag
+    Start_Core_Flag = value
+
+
+def toggle_key_click_flag(value):
+    global Key_Click_Flag
+    Key_Click_Flag = value
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+
+def update_gui():
+    if not frame_queue.empty():
+        image = frame_queue.get()
+        image = customtkinter.CTkImage(light_image=Image.fromarray(image), dark_image=Image.fromarray(image),
+                                       size=(580, 580))
+        gui.image_label.image = image
+        gui.image_label.configure(image=image)
+        gui.image_label.image = image
+    gui.after(10, update_gui)
+
+
+cap = cv2.VideoCapture(0)
+Start_Core_Flag = False  # This flag when set, allows for model prediction and key presses to occur,i.e. core
+# functionality
+Key_Click_Flag = False  # flag, if true allows for camera detections to trigger key clicks, else not
+
+
 # MAIN APPLICATION METHOD
-def app():
-    # flag, if true allows for camera detections to trigger key clicks, else not
-    keyboard_flag = True
+def main_app(run_event, frame_queue):
+    global Start_Core_Flag, Key_Click_Flag
+    # Set mediapipe model
+    holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
     # array to append frames(30 for current model) to ship of to the model to make predictions and minimum predicted
     # prob of any action
     sequence = []
@@ -216,85 +212,96 @@ def app():
     accelerate = False
     turn = turn_controls['null']
     turn_controls_inv = {0: 'null', 1: 'left', 2: 'right'}  # key and value swapped
-
     # THE MAIN LOOP WHICH RUNS TO GET ACTIONS AND GIVE FINAL CONTROL PREDICTIONS
-    cap = cv2.VideoCapture(0)
-    # Set mediapipe model
-    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-        while cap.isOpened():
+    while run_event.is_set():
+        # Read feed
+        ret, frame = cap.read()
 
-            # Read feed
-            ret, frame = cap.read()
+        # Make detections
+        image, results = mediapipe_detection(frame, holistic)
+        # Draw landmarks
+        draw_styled_landmarks(image, results)
+        # 2. Prediction logic
+        keypoints = extract_keypoints(results)
+        sequence.append(keypoints)
+        sequence = sequence[-30:]
 
-            # Make detections
-            image, results = mediapipe_detection(frame, holistic)
+        if len(sequence) == 30 and Start_Core_Flag:
+            res = model.predict(np.expand_dims(sequence, axis=0))[0]
+            print(Start_Core_Flag)
 
-            try:
-                landmarks = results.pose_landmarks.landmark
-                left_wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,
-                              landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
-                right_wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
-                               landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
-                left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
-                                 landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-                right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
-                                  landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-                # Throttle controls
-                if res[np.argmax(res)] > threshold and actions[np.argmax(res)] != 'null' and keyboard_flag:
-                    throttle_controller(actions[np.argmax(res)], accelerate)
-                else:
-                    pass
-                accelerate = True if actions[np.argmax(res)] == 'apply-throttle' else False
+            # Visualize prediction probabilities
+            image = prob_viz(res, actions, image, colors)
 
-                angle = calculate_angle(left_wrist, right_wrist, left_shoulder, right_shoulder)
-            except AttributeError:
+        try:
+            landmarks = results.pose_landmarks.landmark
+            left_wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,
+                          landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+            right_wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
+                           landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
+            left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
+                             landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+            right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
+                              landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+            # Throttle controls
+            if res[np.argmax(res)] > threshold and actions[
+                np.argmax(res)] != 'null' and Key_Click_Flag and Start_Core_Flag:
+                throttle_controller(actions[np.argmax(res)], accelerate)
+            else:
                 pass
-            except UnboundLocalError:
-                pass
-            # Draw landmarks
-            draw_styled_landmarks(image, results)
+            accelerate = True if actions[np.argmax(res)] == 'apply-throttle' else False
 
-            # 2. Prediction logic
-            keypoints = extract_keypoints(results)
-            sequence.append(keypoints)
-            sequence = sequence[-30:]
+            angle = calculate_angle(left_wrist, right_wrist, left_shoulder, right_shoulder)
 
-            if len(sequence) == 30:
-                res = model.predict(np.expand_dims(sequence, axis=0))[0]
+        except AttributeError:
+            pass
+        except UnboundLocalError:
+            pass
 
-                # Visualize prediction probabilities
-                image = prob_viz(res, actions, image, colors)
-
-            # Turning
-            prev_turn = turn
-            turn = angle_to_turn(angle)
-            if keyboard_flag:
-                turn_controller(turn, prev_turn)
-            try:
-                cv2.putText(image, str(angle),
-                            tuple(np.multiply(left_wrist, [640, 480]).astype(int)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                            )
-            except UnboundLocalError:
-                pass
-            cv2.putText(image,
-                        'Throttle: {} | turn: {} | keyclick: {}'.format(accelerate, turn_controls_inv[turn], keyboard_flag),
-                        (20, 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.632, (0, 255, 0), 4, cv2.LINE_AA
+        # Turning
+        prev_turn = turn
+        turn = angle_to_turn(angle)
+        if Key_Click_Flag and Start_Core_Flag:
+            turn_controller(turn, prev_turn)
+        try:
+            cv2.putText(image, str(angle),
+                        tuple(np.multiply(left_wrist, [640, 480]).astype(int)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                         )
+        except UnboundLocalError:
+            pass
+        cv2.putText(image,
+                    'Throttle: {} | turn: {} | keyclick: {}'.format(accelerate, turn_controls_inv[turn],
+                                                                    Key_Click_Flag),
+                    (20, 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.632, (0, 255, 0), 4, cv2.LINE_AA
+                    )
 
-            # Show to screen
-            cv2.imshow('OpenCV Feed', image)
-
-            if cv2.waitKey(10) & 0xFF == ord('f'):
-                keyboard_flag = not keyboard_flag
-
-            # Break gracefully
-            if cv2.waitKey(10) & 0xFF == ord('q'):
-                break
-
-        cap.release()
-        cv2.destroyAllWindows()
+        # placing final processed image in the queue for GUI to pick up later when it can
+        frame_queue.put(image)
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 
+# Frame Queue used to communicate between Main thread where GUI runs and Daemon thread where main_app runs
+frame_queue = Queue()
+
+# Event to start the loop in main app
+run_event = Event()
+run_event.set()  # setting the event
+
+# creating the main_app's thread
+main_app_thread = Thread(target=main_app, args=(run_event, frame_queue))
+main_app_thread.setDaemon(True)
+
+# Creating instance of the GUI
+gui = GUI(cap, run_event)
+
+# starting main_app which captures video feed and does the image recognition as a daemon thread
+main_app_thread.start()
+
+# frames updated from the main_app to the GUI using the frame_queue as an intermediate
+update_gui()
+
+# Firing up the GUI!
+gui.mainloop()

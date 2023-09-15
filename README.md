@@ -55,7 +55,7 @@ The section below shall detail the use of the GUI which is very simple.
 *  The **START** button is to allow the action recognition model to run. The mediapipe model will
    always run but to start the action recognition model you click **START**.
 *  The **KEYS ON** switch allows the action recognitions which are predicted by the model to be converted to 
-   the corresponding key click.
+   the [corresponding key click](#description). 
 
 ---
 

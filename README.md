@@ -47,6 +47,11 @@ The section below shall detail the use of the GUI which is very simple.
 
 ## GUI
 
+<p align="center">
+ <img src="https://github.com/argav304/AI-Gaming-Controller/assets/51917179/39ac34ed-59c8-49c8-ba4a-8d686079082c" width="744" height="419"/>
+</p>
+
+
 *  The **START** button is to allow the action recognition model to run. The mediapipe model will
    always run but to start the action recognition model you click **START**.
 *  The **KEYS ON** switch allows the action recognitions which are predicted by the model to be converted to 

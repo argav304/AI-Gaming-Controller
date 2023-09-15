@@ -10,4 +10,5 @@ Logs/
 .idea
 #VISUAL STUDIO IDE FILES
 .vs
-
+#BUILD SCRIPT
+setup.py

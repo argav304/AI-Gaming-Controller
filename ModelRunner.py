@@ -26,6 +26,7 @@ model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['categ
 model.load_weights('./Models/actions.h5')
 
 
+
 # DRAWING THE POSITION MARKERS AND THE CONNECTIONS
 def draw_styled_landmarks(image, results):
     # Draw pose connections

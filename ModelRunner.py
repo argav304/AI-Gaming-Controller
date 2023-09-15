@@ -236,8 +236,8 @@ def ModelRunner(cap, run_event, frame_queue):
             else:
                 pass
             accelerate = True if actions[np.argmax(res)] == 'apply-throttle' else False
-
-            angle = calculate_angle(left_wrist, right_wrist, left_shoulder, right_shoulder)
+            if Start_Core_Flag:
+                angle = calculate_angle(left_wrist, right_wrist, left_shoulder, right_shoulder)
 
         except AttributeError:
             pass

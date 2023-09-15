@@ -1,4 +1,4 @@
-from ModelRunner import toggle_key_click_flag,toggle_start_core_flag
+from ModelRunner import toggle_key_click_flag, toggle_start_core_flag
 from tkinter import CENTER
 import customtkinter
 
@@ -28,9 +28,9 @@ class GUI(customtkinter.CTk):
 
         # video feed frame( widget )
         self.videofeed_frame = customtkinter.CTkFrame(self)
-        self.videofeed_frame.grid(row=0, column=0, rowspan=2, sticky="nsew")
+        self.videofeed_frame.grid(row=0, column=0, rowspan=2, columnspan=2, sticky="nsew")
         self.image_label = customtkinter.CTkLabel(self.videofeed_frame, text="")
-        self.image_label.place(relx=0.5,rely=0.5,anchor=CENTER)
+        self.image_label.place(relx=0.5, rely=0.5, anchor=CENTER)
 
         # buttons and switch
 
@@ -43,8 +43,8 @@ class GUI(customtkinter.CTk):
                                                      font=customtkinter.CTkFont(size=20, weight="bold"),
                                                      command=self.keyoff_event, variable=self.keyoff_flag, onvalue="on",
                                                      offvalue="off")
-        self.start_button.grid(row=0, column=1, columnspan=2)
-        self.keyoff_switch.grid(row=1, column=1)
+        self.start_button.grid(row=0, column=2, columnspan=1)
+        self.keyoff_switch.grid(row=1, column=2)
 
     def start_button_event(self):
         self.start_button_flag = not self.start_button_flag

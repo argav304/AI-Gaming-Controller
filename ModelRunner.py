@@ -1,9 +1,11 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
+import tensorflow as tf
 import pyautogui as pg
 import mediapipe as mp
 import numpy as np
 import cv2
+
 
 mp_holistic = mp.solutions.holistic  # Holistic model
 mp_drawing = mp.solutions.drawing_utils  # Drawing utilities
@@ -24,6 +26,7 @@ model.add(Dense(32, activation='relu'))
 model.add(Dense(actions.shape[0], activation='softmax'))
 model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['categorical_accuracy'])
 model.load_weights('./Models/actions.h5')
+tf.keras.utils.disable_interactive_logging() # to stop logging of the model, to enable logging remove in ModelRunner method and in main.py
 
 
 
@@ -187,6 +190,7 @@ Key_Click_Flag = False  # flag, if true allows for camera detections to trigger 
 
 # MAIN APPLICATION METHOD
 def ModelRunner(cap, run_event, frame_queue):
+    tf.keras.utils.disable_interactive_logging() # to stop logging of the model
     global Start_Core_Flag, Key_Click_Flag
     # Set mediapipe model
     holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)

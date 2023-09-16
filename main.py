@@ -2,6 +2,7 @@ from ModelRunner import ModelRunner
 from GUI import GUI
 
 from threading import Event, Thread
+import tensorflow as tf
 from queue import Queue
 from PIL import Image
 import customtkinter
@@ -18,6 +19,7 @@ def update_gui():
         gui.image_label.image = image
     gui.after(10, update_gui)
 
+
 # The camera instance
 cap = cv2.VideoCapture(0)
 
@@ -28,6 +30,7 @@ frame_queue = Queue()
 run_event = Event()
 run_event.set()  # setting the event
 
+tf.keras.utils.disable_interactive_logging()  # to stop logging of the model
 
 # creating the main_app's thread
 main_app_thread = Thread(target=ModelRunner, args=(cap, run_event, frame_queue))

@@ -65,4 +65,4 @@ class GUI(customtkinter.CTk):
         self.run_event.clear()
         self.cap.release()
         self.destroy()
-        print('program closed')
+
